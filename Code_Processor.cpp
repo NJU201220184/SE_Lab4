@@ -1,6 +1,6 @@
 #include "Code_Processor.h"
 
-Code_Processor::Code_Processor(string file_A, string file_B, string input)
+Code_Processor::Code_Processor(string file_A, string file_B, vector<string> input)
 {
     file_A_name = file_A;
     file_B_name = file_B;
@@ -23,11 +23,7 @@ Code_Processor::Code_Processor(string file_A, string file_B, string input)
     file_A_code = A;
     file_B_code = B;
 
-    //输入文件
-    ofstream of_input;
-    of_input.open("input.txt", ios::trunc);
-    of_input<<input;
-    of_input.close();
+    input_list = input;
 
     //添加部分
     ifstream tmp("appendix.txt");
@@ -51,12 +47,18 @@ void Code_Processor::code_process()
     file_B_code.insert(pos_B + 1, appendix);
 }
 
-bool Code_Processor::execute_code(string code, string pro, string error_log, string output_file_name)
+bool Code_Processor::execute_code(string code, string pro, string error_log, string output_file_name, string input)
 {
     ofstream of;
     of.open("temp.cpp", ios::trunc);
     of<<code;
     of.close();
+
+    //输入文件
+    ofstream of_input;
+    of_input.open("input.txt", ios::trunc);
+    of_input<<input;
+    of_input.close();
 
     string command = "g++ temp.cpp -o ";
     command += pro;
@@ -84,8 +86,6 @@ bool Code_Processor::execute_code(string code, string pro, string error_log, str
 
 void Code_Processor::judge(string file_A, string file_B)
 {
-    
-
     ifstream if_A(file_A);
     ifstream if_B(file_B);
 
@@ -112,26 +112,36 @@ void Code_Processor::auto_judge()
         return;
     }
 
-    code_process();
-    bool is_A = execute_code(file_A_code, "A.out", "A_error.log", "A_out.txt");
-    bool is_B = execute_code(file_B_code, "B.out", "B_error.log", "B_out.txt");
+    code_process(); //处理代码
 
-    if(!is_A || !is_B)
+    //多组输入进行判断
+    for(auto &iter : input_list)
     {
-        ofstream f("output/abnormal.csv", ios::out|ios::app);
-        f<<file_A_name<<','<<file_B_name<<endl;
-        return;
+        bool is_A = execute_code(file_A_code, "A.out", "A_error.log", "A_out.txt", iter);
+        bool is_B = execute_code(file_B_code, "B.out", "B_error.log", "B_out.txt", iter);
+
+        //一旦出现编译错误，直接认为是abnormal
+        if(!is_A || !is_B)
+        {
+            ofstream f("output/abnormal.csv", ios::out|ios::app);
+            f<<file_A_name<<','<<file_B_name<<endl;
+            return;
+        }
+
+        //判断输出是否一致
+        judge("A_out.txt", "B_out.txt");
+
+        //一旦有一个输出不一致，就认为oj程序不等价
+        if(judgement == "nonequivalent")
+        {
+            ofstream f("output/inequal.csv", ios::out|ios::app);
+            f<<file_A_name<<','<<file_B_name<<endl;
+            return;
+        }
     }
-
-    else judge("A_out.txt", "B_out.txt");
-
-    if(judgement == "nonequivalent")
-    {
-        ofstream f("output/inequal.csv", ios::out|ios::app);
-        f<<file_A_name<<','<<file_B_name<<endl;
-    }
-
-    else if(judgement == "equivalent")
+    
+    //所有输出都一样
+    if(judgement == "equivalent")
     {
         ofstream f("output/equal.csv", ios::out|ios::app);
         f<<file_A_name<<','<<file_B_name<<endl;

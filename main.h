@@ -38,9 +38,15 @@ void judge(string path)
         string input_format = fl.get_input_format();
 
         //Generate input
+        //仅有1组输入
         Input_generator ig(input_format);
-        ig.generate_input();
-        string input = ig.get_input();
+        ig.multiple_input();
+        vector<string> input = ig.get_input();
+        cout<<input_format<<endl;
+        for(auto &iter : input)
+        {
+            cout<<iter<<endl;
+        }
 
         //Code Process
         auto iter_1 = file_list.begin();
