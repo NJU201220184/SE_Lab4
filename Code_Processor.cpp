@@ -107,6 +107,7 @@ void Code_Processor::judge(string file_A, string file_B)
 
 void Code_Processor::auto_judge()
 {
+    cout<<file_A_name<<" & "<<file_B_name<<endl;
     if(is_same()){
         return;
     }
